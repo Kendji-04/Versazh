@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Random Review Sentiment — Hugging Face</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #9ca3af;
+      --text: #e5e7eb;
+      --accent: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --border: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 80% -10%, #1f2937 0%, var(--bg) 60%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .app {
+      width: 100%;
+      max-width: 880px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      backdrop-filter: blur(6px);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    header .badge {
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0;
+      letter-spacing: 0.3px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      outline: none;
+    }
+    button {
+      appearance: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #1f2937;
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.06s ease, opacity 0.2s ease, filter 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:active { transform: translateY(1px); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .meta {
+      display: flex;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    .panel {
+      margin-top: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .review {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      font-size: 16px;
+      color: #f3f4f6;
+      min-height: 64px;
+    }
+    .result {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+    }
+    .result i {
+      font-size: 28px;
+    }
+    .result .pos { color: var(--accent); }
+    .result .neg { color: var(--danger); }
+    .result .neu { color: var(--warn); }
+    .status {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status.error { color: #fda4af; }
+    footer {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .kbd {
+      border: 1px solid var(--border);
+      border-bottom-width: 3px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1><i class="fa-solid fa-magnifying-glass-chart"></i> Random Review Sentiment</h1>
+      <span class="badge">Hugging Face · siebert/sentiment-roberta-large-english</span>
+    </header>
+
+    <div class="row">
+      <div class="field">
+        <label for="hfToken">Hugging Face API Token (optional)</label>
+        <input id="hfToken" type="password" placeholder="hf_... (leave blank to use free rate limits)">
+      </div>
+      <div style="align-self:end;">
+        <button id="analyzeBtn"><i class="fa-solid fa-shuffle"></i> Analyze Random Review</button>
+      </div>
+    </div>
+
+    <div class="meta">
+      <div><i class="fa-regular fa-file-lines"></i> <span id="count">Loading reviews…</span></div>
+      <div><i class="fa-regular fa-clock"></i> <span id="modelStatus">Model idle</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="review" id="reviewText"></div>
+      <div class="result" id="result">
+        <i class="fa-regular fa-circle-question neu" id="resultIcon" aria-hidden="true"></i>
+        <div>
+          <div id="resultLabel">Neutral</div>
+          <div id="resultScore" style="font-size:12px;color:var(--muted)"></div>
+        </div>
+      </div>
+      <div class="status" id="status"><i class="fa-regular fa-message"></i> Ready</div>
+    </div>
+
+    <footer>
+      <div><span class="kbd">TSV</span> Source: <code>reviews_test.tsv</code></div>
+      <div>Uses <span class="kbd">Papa Parse</span> and <span class="kbd">fetch</span> in the browser</div>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script defer src="app.js"></script>
+</body>
+</html>
